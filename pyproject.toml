@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pygments-lexer-spl"
+version = "0.1.0"
+description = "A Pygments plugin providing syntax highlighting for the Splunk Search Processing Language (SPL)"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Sean Whalen", email = "whalenster@gmail.com"}
+]
+requires-python = ">=3.8"
+dependencies = [
+    "pygments>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+server = [
+    "flask",
+]
+
+[project.urls]
+Homepage = "https://github.com/seanthegeek/pygments-lexer-spl"
+Repository = "https://github.com/seanthegeek/pygments-lexer-spl"
+"Bug Tracker" = "https://github.com/seanthegeek/pygments-lexer-spl/issues"
+Changelog = "https://github.com/seanthegeek/pygments-lexer-spl/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/seanthegeek/pygments-lexer-spl/blob/main/README.md"
+
+[project.entry-points."pygments.lexers"]
+spl = "pygments_lexer_spl:SPLLexer"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

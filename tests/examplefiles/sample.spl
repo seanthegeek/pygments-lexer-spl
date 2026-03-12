@@ -1,0 +1,159 @@
+index=main sourcetype=access_combined host=webserver01
+| search status!=404 AND (method="GET" OR method="POST") NOT bot
+| where isnotnull(user) AND duration > 0
+
+index=firewall sourcetype=cisco:asa action=blocked
+| stats count AS total, dc(src_ip) AS unique_sources BY dest_ip
+| sort -total
+| head 20
+
+index=main earliest=-24h@h latest=now
+| timechart span=1h count BY sourcetype
+
+index=_internal source=*metrics.log
+| eval cpu_pct=round(cpu_seconds/elapsed_ms*100, 2)
+| where cpu_pct > 50.0
+
+| makeresults count=5
+| eval name=case(
+    _time%5==0, "alpha",
+    _time%5==1, "beta",
+    _time%5==2, "gamma",
+    true(), "other"
+  )
+| eval is_valid=if(isnull(name), false(), true())
+| eval empty=null()
+
+| inputlookup geo_lookup.csv
+| iplocation src_ip
+| geostats latfield=lat longfield=lon count BY Country
+
+| eval hash=md5(user), hash2=sha256(user)
+| eval ts=strftime(_time, "%Y-%m-%d %H:%M:%S")
+| eval parsed=strptime("2024-01-15", "%Y-%m-%d")
+| eval elapsed=now()-relative_time(_time, "-1d@d")
+
+| eval greeting=upper("hello world")
+| eval trimmed=trim(field, " "), sub=substr(name, 1, 3)
+| eval parts=split(path, "/"), joined=mvjoin(parts, "-")
+| eval idx=mvindex(parts, 0, 2), cnt=mvcount(parts)
+| eval reversed=mvreverse(parts), sorted=mvsort(parts)
+| eval found=mvfind(parts, "^api"), deduped=mvdedup(parts)
+| eval combined=mvappend(parts, "extra"), mapped=mvmap(parts, upper(parts))
+| eval zipped=mvzip(keys, vals, "="), rng=mvrange(1, 10, 2)
+| eval json_arr=mv_to_json_array(parts)
+
+| eval x=abs(-42), y=ceiling(3.14), z=floor(9.99)
+| eval p=pow(2, 10), s=sqrt(144), lg=log(1000, 10)
+| eval natural=ln(exp(1)), pi_val=pi(), sig=sigfig(3.14159)
+| eval ex=exact(3.14*2.72), sm=sum(1, 2, 3)
+| eval rounded=round(3.14159, 2), rnd=random()
+
+| eval angle=cos(0), s2=sin(pi()), t=tan(0.5)
+| eval h=hypot(3, 4), a=acos(1), a2=asin(0)
+| eval at=atan(1), at2=atan2(1, 1)
+| eval ch=cosh(1), sh=sinh(1), th=tanh(0.5)
+| eval ach=acosh(1), ash=asinh(0), ath=atanh(0)
+
+| eval b1=bit_and(15, 9), b2=bit_or(10, 6)
+| eval b3=bit_not(255, 65535), b4=bit_xor(12, 10)
+| eval b5=bit_shift_left(1, 4), b6=bit_shift_right(16, 2)
+
+| eval t1=typeof(field), t2=isstr(name), t3=isnum(count)
+| eval t4=isint(count), t5=isdouble(ratio), t6=isbool(flag)
+| eval t7=ismv(tags), t8=isarray(data), t9=isobject(obj)
+| eval net=cidrmatch("10.0.0.0/8", src_ip)
+| eval ok=validate(isnotnull(x), "x missing", isnum(x), "x not num")
+| eval nf=nullif(a, b)
+| eval mask=ipmask("255.255.255.0", src_ip)
+| eval pf=printf("%s has %d items", name, count)
+| eval encoded=urldecode("%20hello%20world")
+| eval low=lower(name), up=upper(name)
+| eval lt=ltrim(name, " "), rt=rtrim(name, " ")
+| eval ln=len(name), lng=length(name)
+| eval cl=ceil(3.7)
+| eval tb=tobool("true"), td=todouble("3.14"), ti=toint("42")
+| eval tn=tonumber("FF", 16), ts2=tostring(1==1, "bool")
+| eval ta=toarray(field), to=toobject(field), tv=tomv(field)
+
+| eval obj=json_object("key", "value", "num", 42)
+| eval arr=json_array("a", "b", "c")
+| eval extracted=json_extract(payload, "results{}.name")
+| eval keys=json_keys(obj)
+| eval valid=json_valid(payload)
+| eval updated=json_set(obj, "new_key", "new_value")
+| eval appended=json_append(arr, "items", "d")
+| eval extended=json_extend(arr, "items", json_array("e", "f"))
+| eval deleted=json_delete(obj, "old_key")
+| eval exact_val=json_extract_exact(obj, "key.with.dots")
+| eval exact_set=json_set_exact(obj, "key.with.dots", "val")
+| eval has_key=json_has_key_exact(obj, "key.with.dots")
+| eval entries=json_entries(obj)
+| eval mv_from_json=json_array_to_mv(arr)
+
+| eval result=json(field)
+| eval sp=spath(payload, "results{0}.name")
+| eval matched=match(field, "^\d+$")
+| eval liked=like(name, "admin%")
+| eval sm2=searchmatch("error OR warning")
+| eval incheck=if(in(status, "200", "301", "302"), "ok", "err")
+
+| eval cmds=commands(search)
+| eval split_val=split("a-b-c", "-")
+
+| stats count AS total, avg(bytes) AS avg_bytes BY host, sourcetype
+| stats dc(user) AS unique_users, sum(bytes) AS total_bytes BY index
+| stats min(duration) AS fastest, max(duration) AS slowest
+| stats mean(response_time) AS mean_rt, median(response_time) AS med_rt
+| stats stdev(latency) AS sd, stdevp(latency) AS sdp
+| stats var(latency) AS variance, varp(latency) AS pop_variance
+| stats mode(status) AS common_status
+| stats range(bytes) AS byte_range, sumsq(bytes) AS sum_squares
+| stats estdc(user) AS est_unique, estdc_error(user) AS est_err
+| stats perc95(response_time) AS p95_rt
+| stats exactperc99(duration) AS exact_p99
+| stats upperperc90(bytes) AS upper_p90
+| stats p50(latency) AS median_lat
+| stats first(event) AS first_evt, last(event) AS last_evt
+| stats list(user) AS all_users, values(status) AS unique_statuses
+| stats earliest(event) AS first_event, latest(event) AS last_event
+| stats earliest_time(event) AS first_ts, latest_time(event) AS last_ts
+| stats per_second(bytes) AS bps, per_minute(count) AS rpm
+| stats per_hour(events) AS eph, per_day(logins) AS dpd
+| stats rate(bytes) AS byte_rate
+| stats rate_avg(throughput) AS avg_rate, rate_sum(throughput) AS total_rate
+
+| eventstats count AS event_total BY host
+| streamstats sum(bytes) AS running_total
+
+| eval threshold=$min_threshold$
+| `get_default_config`
+| `my_lookup(src_ip, "threat_intel")`
+
+| dedup host, sourcetype
+| rename total AS "Total Count", avg_bytes AS "Average Bytes"
+| fillnull value=0
+| fields + host, sourcetype, total, avg_bytes
+| table host, sourcetype, total, avg_bytes
+| outputlookup results.csv
+
+| transaction host maxspan=30m maxpause=5m
+| where duration > 60 XOR eventcount < 3
+| addtotals col=true labelfield=total_label label="Grand Total"
+
+| rex field=_raw "user=(?<username>\w+)"
+| regex _raw="error|warning|critical"
+
+host=10.0.0.1 OR host=192.168.1.*
+| where host!="localhost"
+| eval data=spath(_raw, "results{}")
+| search TERM(www.example.com) sourcetype=access_combined
+
+| mstats avg(cpu.idle) AS avg_idle WHERE index=metrics BY host span=5m
+| collect index=summary source="daily_report"
+| trendline sma5(count) AS trend
+| predict count AS predicted_count
+| timechart span=15m avg(cpu) BY host
+
+| chart avg(bytes) OVER host BY sourcetype
+| lookup geo_lookup ip AS src_ip OUTPUT city, country OUTPUTNEW region

@@ -1,0 +1,7 @@
+index=main sourcetype=access_combined status=200
+| stats count AS total_requests, avg(response_time) AS avg_response BY host
+| where total_requests > 100 AND avg_response < 5.0
+| eval status_label=if(avg_response<0.5, "fast", "slow")
+| sort -avg_response
+| head 10
+| table host, total_requests, avg_response, status_label
