@@ -1,0 +1,53 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python }} / Pygments ${{ matrix.pygments }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every Python the project supports (requires-python >= 3.8)
+        python: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        # Oldest Pygments whose plugin discovery works without pkg_resources,
+        # and the newest release
+        pygments: ['==2.13.0', '>=2.13']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install
+        run: python -m pip install -e ".[dev]" "pygments${{ matrix.pygments }}"
+
+      - name: Show Pygments version
+        run: python -c 'import pygments; print(pygments.__version__)'
+
+      - name: Run tests
+        run: python -m pytest
+
+      - name: Check for error tokens in the demo and sample
+        run: |
+          python - <<'PY'
+          import glob, sys
+          from pygments.token import Error
+          from pygments_lexer_spl import SPLLexer
+          failed = False
+          for path in sorted(glob.glob("tests/examplefiles/*")):
+              errors = [v for t, v in SPLLexer().get_tokens(open(path).read()) if t is Error]
+              print(f"{path}: {len(errors)} error tokens")
+              for v in errors:
+                  print(f"  {v!r}")
+              failed = failed or bool(errors)
+          sys.exit(1 if failed else 0)
+          PY
